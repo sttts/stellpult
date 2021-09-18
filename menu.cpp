@@ -11,37 +11,36 @@ using namespace Menu;
 
 #define MAX_DEPTH 2
 
-int weiche = 1;
-int stellungen = 2;
+byte weiche = 1;
+byte stellungen = 2;
 MENU(subWeichen, "Weichen einstellen", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
   ,FIELD(weiche,"Nummer","",1,16,1,1,Menu::doNothing,Menu::noEvent,Menu::wrapStyle)
   ,FIELD(stellungen,"Stellungen","",2,3,1,1,Menu::doNothing,Menu::noEvent,Menu::wrapStyle)
   ,EXIT("<Zurueck")
 );
 
-int richtung=0;
+byte richtung=0;
 SELECT(richtung,selRichtung,"Richtung",Menu::doNothing,Menu::noEvent,Menu::noStyle
   ,VALUE("Links",0,doNothing,noEvent)
   ,VALUE("Rechts",1,doNothing,noEvent)
   ,VALUE("Mitte",2,doNothing,noEvent)
 );
 
-int led = 1;
+byte led = 1;
 Menu::result ledSelected(Menu::eventMask e) {
-  Serial.print("event: ");
+  Serial.print(F("event: "));
   Serial.println(e);
-  Serial.flush();
   return Menu::proceed;
 }
 MENU(subLeds, "LEDs einstellen", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
-  ,FIELD(led,"Nummer","",1,128,1,1,ledSelected,Menu::anyEvent,Menu::wrapStyle)
+  ,FIELD(led,"Nummer","",1,128,1,1,ledSelected,Menu::noEvent,Menu::wrapStyle)
   ,FIELD(weiche,"Weiche","",1,16,1,1,Menu::doNothing,Menu::noEvent,Menu::wrapStyle)
   ,SUBMENU(selRichtung)
   ,EXIT("<Zurueck")
 );
 
-int servo = 1;
-int servoPos = 50;
+byte servo = 1;
+byte servoPos = 50;
 MENU(subServos, "Servos einstellen", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
   ,FIELD(servo,"Nummer","",1,16,1,1,Menu::doNothing,Menu::noEvent,Menu::wrapStyle)
   ,SUBMENU(selRichtung)
@@ -49,7 +48,7 @@ MENU(subServos, "Servos einstellen", Menu::doNothing, Menu::noEvent, Menu::wrapS
   ,EXIT("<Zurueck")
 );
 
-MENU(mainMenu, "Stellpult einstellen", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
+MENU(mainMenu, "Stellpult", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
   ,SUBMENU(subWeichen)
   ,SUBMENU(subLeds)
   ,SUBMENU(subServos)
@@ -66,9 +65,9 @@ const panel panels[] MEMMODE = {{0, 0, 128 / fontW, 64 / fontH}};
 navNode* nodes[sizeof(panels) / sizeof(panel)]; // navNodes to store navigation status
 panelsList pList(panels, nodes, 1); // a list of panels and nodes
 idx_t tops[MAX_DEPTH] = {0, 0};
-SSD1306AsciiOut outOLED(&oled, tops, pList, 8, 1+((fontH-1)>>3) ); //oled output device menu driver
-menuOut* constMEM outputs[] MEMMODE = {&outOLED}; //list of output devices
-outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); //outputs list
+SSD1306AsciiOut outOLED(&oled, tops, pList, 8, 1+((fontH-1)>>3) ); // oled output device menu driver
+menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
+outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 
 // Input
 #define encA    A1
@@ -87,7 +86,7 @@ void menu_setup() {
   oled.setFont(menuFont);
   oled.clear();
   oled.setCursor(0, 0);
-  oled.print("Stellpult");
+  oled.print(F("Stellpult"));
 
   delay(2000);
   

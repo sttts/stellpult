@@ -1,12 +1,26 @@
 #include <PCA9685.h>
+#include <EEPROM.h>
 #include "ht16k33.h"
 #include "menu.h"
+#include "data.h"
 
 PCA9685 pwmController;
 HT16K33 HT;
+State state;
 
 void setup() {
   Serial.begin(57600);
+  while (!Serial) {}
+
+  EEPROM.get(0, state);
+  if (state.version != 1) {
+    Serial.println(F("Initialisiere Daten"));
+    initData(state);
+    EEPROM.put(0, state);
+  } else {
+    Serial.print(F("Daten gefunden. Version: "));
+    Serial.println(state.version);
+  }
   
   //Wire.begin();
   HT.begin(0x00); // 0x70 is added in the class
