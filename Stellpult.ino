@@ -7,10 +7,7 @@ HT16K33 HT;
 
 void setup() {
   Serial.begin(57600);
-  while(!Serial);
-
-  menu_setup();
-
+  
   //Wire.begin();
   HT.begin(0x00); // 0x70 is added in the class
 
@@ -24,10 +21,11 @@ void setup() {
   }
   HT.setLed(0);
   HT.sendLed();
+
+  menu_setup();
 }
 
 bool weiche17 = false;
-int i = 0;
 
 void loop() {  
   menu_loop();
@@ -62,11 +60,6 @@ void loop() {
   }
 
   delay(100);
-
-  i++;
-  if (i % 10 == 0) {
-    Serial.println(i);
-  }
 
   digitalWrite(LED_BUILTIN, millis()%(unsigned long)(500)<(unsigned long)250);
 }
