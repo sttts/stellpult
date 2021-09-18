@@ -5,12 +5,12 @@
 #define NUM_SERVOS 16
 
 struct StateWeiche {
-  uint8_t stellungen : 2;
+  uint8_t typ; // 0 = Doppelweiche, 1 = Dreifachweiche
 } __attribute__((packed));
 
 struct StateLED {
-  uint8_t weiche : 6;
-  uint8_t position : 2;
+  uint8_t weiche : 5;
+  uint8_t richtung : 3; // bit 0 = Links, bit 1 = Rechts, bit 2 = Mitte
 } __attribute__((packed));
 
 struct StateServo {
@@ -27,3 +27,5 @@ struct State {
 extern State state;
 
 void initData(State &state);
+void loadData(State &state);
+void saveData(State &state);
