@@ -151,6 +151,7 @@ Menu::result subServoSelected(Menu::eventMask e) {
   servoLinks = state.servos[servo-1].position[0];
   servoRechts = state.servos[servo-1].position[1];
   servoMitte = state.servos[servo-1].position[2];
+  weiche = state.servos[servo-1].weiche;
   return Menu::proceed;
 }
 Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {
@@ -167,6 +168,15 @@ Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {
   state.servos[servo-1].position[r] = pos;
   saveData(state);
 
+  // Servos der gleichen Weiche auf gleiche Stellung bringen
+  for (uint8_t peer = 0; peer < NUM_SERVOS; peer++) {
+    if (state.servos[peer].weiche != state.servos[servo-1].weiche || peer == servo-1) {
+      continue;
+    }
+    uint16_t p = uint16_t(state.servos[peer].position[r]) * 512 / 100;
+    pwmController.setChannelPWM(peer, p);
+  }
+
   uint16_t p = uint16_t(pos) * 512 / 100;
   pwmController.setChannelPWM(servo-1, p);
 
@@ -181,8 +191,18 @@ Menu::result subServoRechtsUpdated(Menu::eventMask e) {
 Menu::result subServoMitteUpdated(Menu::eventMask e) {
   return subServoUpdated(e, 2, servoMitte);
 }
+Menu::result subServoWeicheSelected(Menu::eventMask e) {
+  Serial.print(F("subServoWeicheSelected "));
+  Serial.println(weiche);
+
+  state.servos[servo-1].weiche = weiche;
+  saveData(state);
+
+  return Menu::proceed;  
+}
 MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::wrapStyle
   ,FIELD(servo,"Nummer","",1,16,1,0,subServoSelected,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(weiche,"Weiche","",1,16,1,0,subServoWeicheSelected,Menu::enterEvent,Menu::wrapStyle)
   ,FIELD(servoLinks,"Position Links","%",0,100,1,0,subServoLinksUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
   ,FIELD(servoRechts,"Position Rechts","%",0,100,1,0,subServoRechtsUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
   ,FIELD(servoMitte,"Position Mitte","%",0,100,1,0,subServoMitteUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)

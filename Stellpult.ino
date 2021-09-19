@@ -31,7 +31,8 @@ void updateServos() {
 }
 
 void updateServo(uint8_t s, bool verbose) {
-  uint16_t p = uint16_t(state.servos[s-1].position[weichenPositionen[s-1]]) * 512 / 100;
+  uint8_t stellung = weichenPositionen[state.servos[s-1].weiche];
+  uint16_t p = uint16_t(state.servos[s-1].position[stellung]) * 512 / 100;
   if (verbose) {
     Serial.print(F("updateServo "));
     Serial.print(s);
@@ -53,7 +54,6 @@ void setup() {
   pwmController.resetDevices();       // Resets all PCA9685 devices on i2c line
   pwmController.init();               // Initializes module using default totem-pole driver mode, and default disabled phase balancer
   pwmController.setPWMFrequency(50); // Set PWM freq to 100Hz (default is 200Hz, supports 24Hz to 1526Hz)
-  //pwmController.setChannelPWM(0, 128 << 4); // Set PWM to 128/255, shifted into 4096-land
 
   for (uint8_t w=0; w<NUM_WEICHEN; w++) {
     weichenPositionen[w] = state.weichen[w].anfangsstellung;
@@ -133,7 +133,7 @@ void loop() {
     if (w != 0) {
       schalteWeiche(w);  
       updateLeds();
-      updateServo(w, true);
+      updateServos();
     }
   }
 
