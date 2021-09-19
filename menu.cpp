@@ -78,7 +78,7 @@ Menu::result subLedsRichtungChanged(Menu::eventMask e) {
   // Richtung aufblinken lassen
   if (richtung == 1 || richtung == 2 || richtung == 4) {
     for (uint8_t led=0; led<NUM_LEDS; led++) {
-      uint8_t w = state.leds[led].weiche;
+      uint8_t w = state.leds[led].weiche + 1;
       if (w != weiche) {
         continue;
       }
@@ -120,7 +120,7 @@ Menu::result subLedsSelected(Menu::eventMask e) {
   Serial.println(led);
   Serial.println(e);
 
-  weiche = state.leds[led-1].weiche;
+  weiche = state.leds[led-1].weiche+1;
   richtung = state.leds[led-1].richtung;
   return Menu::proceed;
 }
@@ -128,7 +128,7 @@ Menu::result subLedsWeicheChanged(Menu::eventMask e) {
   Serial.print(F("subLedsWeicheChanged "));
   Serial.println(weiche);
   
-  state.leds[led-1].weiche = weiche;
+  state.leds[led-1].weiche = weiche-1;
   state.leds[led-1].richtung = richtung;
   saveData(state);
   return Menu::proceed;
@@ -151,7 +151,7 @@ Menu::result subServoSelected(Menu::eventMask e) {
   servoLinks = state.servos[servo-1].position[0];
   servoRechts = state.servos[servo-1].position[1];
   servoMitte = state.servos[servo-1].position[2];
-  weiche = state.servos[servo-1].weiche;
+  weiche = state.servos[servo-1].weiche+1;
   return Menu::proceed;
 }
 Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {

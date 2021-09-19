@@ -12,7 +12,7 @@ uint8_t weichenPositionen[NUM_WEICHEN];
 
 void updateLeds() {
   for (uint8_t led=0; led<NUM_LEDS; led++) {
-    uint8_t w = state.leds[led].weiche - 1;
+    uint8_t w = state.leds[led].weiche;
     uint8_t r = state.leds[led].richtung;
     uint8_t mask = 1<<weichenPositionen[w];
     if (state.leds[led].richtung&mask) {
