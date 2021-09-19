@@ -7,13 +7,17 @@
 #include <menuIO/keyIn.h>
 #include <menuIO/keyIn.h>
 
+#include "ht16k33.h"
 #include "data.h"
+
+extern HT16K33 HT;
 
 using namespace Menu;
 
 #define MAX_DEPTH 3
 
 byte led = 1;
+uint8_t ledBlinken;
 byte weiche = 1;
 
 byte typ = 0;
@@ -54,7 +58,7 @@ Menu::result subWeichenSelected(Menu::eventMask e) {
   return Menu::proceed;
 }
 MENU(subWeichen, "Weichen einstellen", subWeichenSelected, Menu::enterEvent, Menu::wrapStyle
-  ,FIELD(weiche,"Nummer","",1,16,1,1,subWeichenSelected,Menu::updateEvent,Menu::wrapStyle)
+  ,FIELD(weiche,"Nummer","",1,16,1,1,subWeichenSelected,Menu::enterEvent,Menu::wrapStyle)
   ,SUBMENU(selectTyp)
   ,SUBMENU(selectAnfangsstellung)
   ,EXIT("<Zurueck")
@@ -67,6 +71,28 @@ Menu::result subLedsRichtungChanged(Menu::eventMask e) {
   
   state.leds[led-1].richtung = richtung;
   saveData(state);
+  
+  // Richtung aufblinken lassen
+  if (richtung == 1 || richtung == 2 || richtung == 4) {
+    for (uint8_t led=0; led<NUM_LEDS; led++) {
+      uint8_t w = state.leds[led].weiche;
+      if (w != weiche) {
+        continue;
+      }
+      uint8_t r = state.leds[led].richtung;
+      if (state.leds[led].richtung&richtung) {
+        HT.setLed(led);
+      } else {
+        HT.clearLed(led);
+      }
+    }
+    HT.sendLed();
+
+    delay(500);
+
+    HT.clearAll();
+  }
+
   return Menu::proceed;
 }
 SELECT(richtung,selectRichtung,"Richtung: ",subLedsRichtungChanged,Menu::exitEvent,Menu::noStyle
@@ -81,9 +107,16 @@ SELECT(richtung,selectRichtung,"Richtung: ",subLedsRichtungChanged,Menu::exitEve
 );
 
 Menu::result subLedsSelected(Menu::eventMask e) {
+  if (e == Menu::exitEvent) {
+    ledBlinken = 0;
+    return Menu::proceed;
+  }
+  ledBlinken = led;
+  
   Serial.print(F("subLedsSelected "));
   Serial.println(led);
-  
+  Serial.println(e);
+
   weiche = state.leds[led-1].weiche;
   richtung = state.leds[led-1].richtung;
   return Menu::proceed;
@@ -93,12 +126,13 @@ Menu::result subLedsWeicheChanged(Menu::eventMask e) {
   Serial.println(weiche);
   
   state.leds[led-1].weiche = weiche;
+  state.leds[led-1].richtung = richtung;
   saveData(state);
   return Menu::proceed;
 }
-MENU(subLeds, "LEDs einstellen", subLedsSelected, Menu::enterEvent, Menu::wrapStyle
-  ,FIELD(led,"Nummer","",1,128,1,1,subLedsSelected,Menu::updateEvent,Menu::wrapStyle)
-  ,FIELD(weiche,"Weiche","",1,16,1,1,subLedsWeicheChanged,Menu::updateEvent,Menu::wrapStyle)
+MENU(subLeds, "LEDs einstellen", subLedsSelected, Menu::enterEvent | Menu::exitEvent, Menu::wrapStyle
+  ,FIELD(led,"Nummer","",1,128,1,1,subLedsSelected,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(weiche,"Weiche","",1,16,1,1,subLedsWeicheChanged,Menu::enterEvent,Menu::wrapStyle)
   ,SUBMENU(selectRichtung)
   ,EXIT("<Zurueck")
 );
@@ -131,10 +165,10 @@ Menu::result subServoUpdated(Menu::eventMask e) {
   return Menu::proceed;
 }
 MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::wrapStyle
-  ,FIELD(servo,"Nummer","",1,16,1,1,subServoSelected,Menu::updateEvent,Menu::wrapStyle)
-  ,FIELD(servoLinks,"Position Links","%",0,100,1,1,subServoUpdated,Menu::updateEvent,Menu::wrapStyle)
-  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,1,subServoUpdated,Menu::updateEvent,Menu::wrapStyle)
-  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,1,subServoUpdated,Menu::updateEvent,Menu::wrapStyle)
+  ,FIELD(servo,"Nummer","",1,16,1,1,subServoSelected,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(servoLinks,"Position Links","%",0,100,1,1,subServoUpdated,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,1,subServoUpdated,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,1,subServoUpdated,Menu::enterEvent,Menu::wrapStyle)
   ,EXIT("<Zurueck")
 );
 
@@ -176,6 +210,8 @@ void menu_setup() {
   pinMode(encB, INPUT);
   pinMode(encBtn, INPUT);  
   pinMode(LED_BUILTIN, OUTPUT);
+
+  nav.timeOut = 180;
   
   oled.begin(&Adafruit128x64, I2C_ADDRESS);
   oled.setFont(menuFont);
@@ -191,6 +227,35 @@ void menu_setup() {
   encoder.begin();
 }
 
+extern uint8_t readWeichenKey();
+
 void menu_loop() {
   nav.poll();
+
+  if (ledBlinken) {
+    uint8_t w = readWeichenKey();
+    if (w > 0 && w == weiche) {
+      bool dreier = state.weichen[w-1].typ == 1;
+      if (richtung == 1) {
+        richtung = 2;
+      } else if (richtung == 2) {
+        if (dreier) {
+          richtung = 4;
+        } else {
+          richtung = 1;
+        }
+      } else {
+        richtung = 1;
+      }
+      subLedsRichtungChanged(Menu::enterEvent);
+    } else if (w > 0) {
+      weiche = w;
+      subLedsWeicheChanged(Menu::enterEvent);
+
+      if (state.leds[led-1].richtung == 0) {
+        richtung = 1;
+      }
+      subLedsRichtungChanged(Menu::enterEvent);
+    }
+  }
 }

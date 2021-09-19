@@ -45,28 +45,59 @@ void setup() {
   menu_setup();
 }
 
-void loop() {  
-  menu_loop();
-  
-  uint8_t key = HT.readKey();
-  if (key != 0) {
+uint8_t ledBlinkenAlt = 0;
+
+uint8_t readWeichenKey() {
+    uint8_t key = HT.readKey();
+    if (key == 0) {
+      return 0;
+    }
     Serial.print(F("Key pressed: ")); 
-    Serial.println(key); 
+    Serial.println(key);
 
     key -= 1; // TODO(sttts): Weichenstecker alle eins nach links
+    if (key < 1 || key > NUM_WEICHEN) {
+      return 0;
+    }
 
-    if (key >= 1 && key <= NUM_WEICHEN) {
-      uint8_t w = key - 1;
+    return key;
+}
+
+void loop() {  
+  menu_loop();
+
+  if (ledBlinken == 0 && ledBlinkenAlt != 0) {
+    updateLeds();
+  } else if (ledBlinken != 0 && ledBlinkenAlt == 0) {
+    for (uint8_t led=0; led<NUM_LEDS; led++) {
+      HT.clearLed(led);
+    }
+    HT.sendLed();
+  } else if (ledBlinken != ledBlinkenAlt && ledBlinkenAlt != 0) {
+       HT.clearLed(ledBlinkenAlt - 1);
+  }
+  ledBlinkenAlt = ledBlinken;
+
+  if (ledBlinken != 0) {
+    if (millis()%(unsigned long)(200)<(unsigned long)100) {
+      HT.clearLed(ledBlinken - 1);
+    } else {
+      HT.setLed(ledBlinken - 1);
+    }
+    HT.sendLed();
+  } else {
+    uint8_t w = readWeichenKey();
+    if (w != 0) {
       uint8_t stellungen = 2;
-      if (state.weichen[w].typ == 1) {
+      if (state.weichen[w-1].typ == 1) {
         stellungen += 1;
       }
-      weichenPositionen[w] = (weichenPositionen[w]+1) % stellungen;
-
+      weichenPositionen[w-1] = (weichenPositionen[w-1]+1) % stellungen;
+  
       updateLeds();
-
-      uint16_t p = state.servos[w].position[weichenPositionen[w]] * 512 / 100;
-      pwmController.setChannelPWM(0, p);
+  
+      uint16_t p = state.servos[w].position[weichenPositionen[w-1]] * 512 / 100;
+      pwmController.setChannelPWM(w-1, p);
     }
   }
 
