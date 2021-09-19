@@ -11,7 +11,7 @@
 
 using namespace Menu;
 
-#define MAX_DEPTH 2
+#define MAX_DEPTH 3
 
 byte led = 1;
 byte weiche = 1;
@@ -25,9 +25,24 @@ Menu::result selectTypChanged(Menu::eventMask e) {
   saveData(state);
   return Menu::proceed;
 }
-SELECT(typ,selectTyp,"Typ: ",selectTypChanged,Menu::updateEvent,Menu::noStyle
+SELECT(typ,selectTyp,"Typ: ",selectTypChanged,Menu::exitEvent,Menu::noStyle
   ,VALUE("Doppelweiche",0,Menu::doNothing,Menu::noEvent)
   ,VALUE("Dreifachweiche",1,Menu::doNothing,Menu::noEvent)
+);
+
+byte anfangsstellung = 0;
+Menu::result selectAnfangsstellungChanged(Menu::eventMask e) {
+  Serial.print(F("selectAnfangsStellungChanged "));
+  Serial.println(anfangsstellung);
+  
+  state.weichen[weiche-1].anfangsstellung = anfangsstellung;
+  saveData(state);
+  return Menu::proceed;
+}
+SELECT(anfangsstellung,selectAnfangsstellung,"Beim Start: ",selectAnfangsstellungChanged,Menu::exitEvent,Menu::noStyle
+  ,VALUE("Links",0,Menu::doNothing,Menu::noEvent)
+  ,VALUE("Rechts",1,Menu::doNothing,Menu::noEvent)
+  ,VALUE("Mitte",2,Menu::doNothing,Menu::noEvent)
 );
 
 Menu::result subWeichenSelected(Menu::eventMask e) {
@@ -35,11 +50,13 @@ Menu::result subWeichenSelected(Menu::eventMask e) {
   Serial.println(weiche);
   
   typ = state.weichen[weiche-1].typ;
+  anfangsstellung = state.weichen[weiche-1].anfangsstellung;
   return Menu::proceed;
 }
 MENU(subWeichen, "Weichen einstellen", subWeichenSelected, Menu::enterEvent, Menu::wrapStyle
   ,FIELD(weiche,"Nummer","",1,16,1,1,subWeichenSelected,Menu::updateEvent,Menu::wrapStyle)
   ,SUBMENU(selectTyp)
+  ,SUBMENU(selectAnfangsstellung)
   ,EXIT("<Zurueck")
 );
 
@@ -52,7 +69,7 @@ Menu::result subLedsRichtungChanged(Menu::eventMask e) {
   saveData(state);
   return Menu::proceed;
 }
-SELECT(richtung,selectRichtung,"Richtung: ",subLedsRichtungChanged,Menu::updateEvent,Menu::noStyle
+SELECT(richtung,selectRichtung,"Richtung: ",subLedsRichtungChanged,Menu::exitEvent,Menu::noStyle
   ,VALUE("Links",1,Menu::doNothing,Menu::noEvent)
   ,VALUE("Rechts",2,Menu::doNothing,Menu::noEvent)
   ,VALUE("Mitte",4,Menu::doNothing,Menu::noEvent)
@@ -143,10 +160,10 @@ menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
 outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 
 // Input
-#define encA    A1
-#define encB    A0
+#define encA    A8 // A1
+#define encB    A9 // A0
 #define encBtn  A2
-encoderIn<encA,encB> encoder;//simple quad encoder driver
+encoderIn<encA,encB> encoder; // simple quad encoder driver
 encoderInStream<encA,encB> encStream(encoder,4); // simple quad encoder fake Stream
 keyMap encBtn_map[]={{-encBtn,defaultNavCodes[enterCmd].ch}}; // negative pin numbers use internal pull-up, this is on when low
 keyIn<1> encButton(encBtn_map); // 1 is the number of keys
@@ -155,6 +172,11 @@ MENU_INPUTS(in,&encStream,&encButton);
 NAVROOT(nav,mainMenu,MAX_DEPTH,in,out);
 
 void menu_setup() {
+  pinMode(encA, INPUT);
+  pinMode(encB, INPUT);
+  pinMode(encBtn, INPUT);  
+  pinMode(LED_BUILTIN, OUTPUT);
+  
   oled.begin(&Adafruit128x64, I2C_ADDRESS);
   oled.setFont(menuFont);
   oled.clear();
@@ -167,8 +189,6 @@ void menu_setup() {
   
   encButton.begin();
   encoder.begin();
-
-  pinMode(LED_BUILTIN,OUTPUT);
 }
 
 void menu_loop() {

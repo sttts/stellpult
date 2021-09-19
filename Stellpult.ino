@@ -7,6 +7,22 @@ PCA9685 pwmController;
 HT16K33 HT;
 State state;
 
+uint8_t weichenPositionen[NUM_WEICHEN];
+
+void updateLeds() {
+  for (uint8_t led=0; led<NUM_LEDS; led++) {
+    uint8_t w = state.leds[led].weiche - 1;
+    uint8_t r = state.leds[led].richtung;
+    uint8_t mask = 1<<weichenPositionen[w];
+    if (state.leds[led].richtung&mask) {
+      HT.setLed(led);
+    } else {
+      HT.clearLed(led);
+    }
+  }
+  HT.sendLed();
+}
+
 void setup() {
   Serial.begin(57600);
   while (!Serial) {}
@@ -21,16 +37,13 @@ void setup() {
   pwmController.setPWMFrequency(50); // Set PWM freq to 100Hz (default is 200Hz, supports 24Hz to 1526Hz)
   //pwmController.setChannelPWM(0, 128 << 4); // Set PWM to 128/255, shifted into 4096-land
 
-  for (uint8_t led=0; led<128; led++) {
-      HT.setLed(led);
+  for (uint8_t w=0; w<NUM_WEICHEN; w++) {
+    weichenPositionen[w] = state.weichen[w].anfangsstellung;
   }
-  HT.setLed(0);
-  HT.sendLed();
-
+  updateLeds();
+  
   menu_setup();
 }
-
-bool weiche17 = false;
 
 void loop() {  
   menu_loop();
@@ -40,27 +53,20 @@ void loop() {
     Serial.print(F("Key pressed: ")); 
     Serial.println(key); 
 
-    if (key == 2) {
-      weiche17 = !weiche17;
+    key -= 1; // TODO(sttts): Weichenstecker alle eins nach links
 
-      for (uint8_t led=0; led<128; led++) {
-        if (weiche17) {
-          HT.setLed(led);
-        } else {
-          HT.clearLed(led);
-        }
+    if (key >= 1 && key <= NUM_WEICHEN) {
+      uint8_t w = key - 1;
+      uint8_t stellungen = 2;
+      if (state.weichen[w].typ == 1) {
+        stellungen += 1;
       }
-      
-      if (weiche17) {
-        HT.setLed(0);
-        HT.clearLed(1);
-        pwmController.setChannelPWM(0, 150);
-      } else {
-        HT.setLed(1);
-        HT.clearLed(0);
-        pwmController.setChannelPWM(0, 400);
-      }
-      HT.sendLed();
+      weichenPositionen[w] = (weichenPositionen[w]+1) % stellungen;
+
+      updateLeds();
+
+      uint16_t p = state.servos[w].position[weichenPositionen[w]] * 512 / 100;
+      pwmController.setChannelPWM(0, p);
     }
   }
 

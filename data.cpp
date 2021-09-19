@@ -3,10 +3,11 @@
 #import "data.h"
 
 void initData(State &state) {
-  state.version = 2;
+  state.version = 4;
 
   for (int w = 0; w < NUM_WEICHEN; w++) {
     state.weichen[w].typ = 0; // Doppelweiche
+    state.weichen[w].anfangsstellung = 0;
   }
   for (int l = 0; l < NUM_LEDS; l++) {
     state.leds[l].weiche = 1;
@@ -17,11 +18,12 @@ void initData(State &state) {
     state.servos[s].position[1] = 50;
     state.servos[s].position[2] = 50;
   }
+  state.brightness = 15;
 }
 
 void loadData(State &state) {
   EEPROM.get(0, state);
-  if (state.version != 2) {
+  if (state.version != 4) {
     Serial.println(F("Initialisiere Daten"));
     initData(state);
   } else {

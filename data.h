@@ -5,7 +5,8 @@
 #define NUM_SERVOS 16
 
 struct StateWeiche {
-  uint8_t typ; // 0 = Doppelweiche, 1 = Dreifachweiche
+  uint8_t typ : 1; // 0 = Doppelweiche, 1 = Dreifachweiche
+  uint8_t anfangsstellung : 2;
 } __attribute__((packed));
 
 struct StateLED {
@@ -22,6 +23,7 @@ struct State {
   StateWeiche weichen[NUM_WEICHEN];
   StateLED leds[NUM_LEDS];
   StateServo servos[NUM_SERVOS];
+  uint8_t brightness : 4;
 } __attribute__((packed));
 
 extern State state;
