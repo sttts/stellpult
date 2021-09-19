@@ -210,6 +210,7 @@ MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::w
 );
 
 extern bool servoTest;
+uint8_t brightness = 15;
 Menu::result servosTesten(Menu::eventMask e) {
   servoTest = !servoTest;
   if (servoTest) {
@@ -220,8 +221,19 @@ Menu::result servosTesten(Menu::eventMask e) {
   return Menu::proceed;
 }
 Menu::result mainMenuEnter(Menu::eventMask e) {
+  brightness = state.brightness;
+
   servoTest = false;
-    updateServos();
+  updateServos();
+
+  return Menu::proceed;
+}
+Menu::result subServoBrightnessUpdated(Menu::eventMask e) {
+  state.brightness = brightness;
+  saveData(state);
+
+  HT.setBrightness(state.brightness);
+
   return Menu::proceed;
 }
 MENU(mainMenu, "Stellpult", mainMenuEnter, Menu::enterEvent, Menu::noStyle
@@ -229,6 +241,7 @@ MENU(mainMenu, "Stellpult", mainMenuEnter, Menu::enterEvent, Menu::noStyle
   ,SUBMENU(subLeds)
   ,SUBMENU(subServos)
   ,OP("Servos Testen",servosTesten,Menu::enterEvent)
+  ,FIELD(brightness,"Helligkeit","",0,15,1,0,subServoBrightnessUpdated,Menu::enterEvent,Menu::wrapStyle)
   ,EXIT("<Zurueck")
 );
 

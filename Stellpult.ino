@@ -50,6 +50,7 @@ void setup() {
   
   //Wire.begin();
   HT.begin(0x00); // 0x70 is added in the class
+  HT.setBrightness(state.brightness);
 
   pwmController.resetDevices();       // Resets all PCA9685 devices on i2c line
   pwmController.init();               // Initializes module using default totem-pole driver mode, and default disabled phase balancer
