@@ -6,6 +6,7 @@
 PCA9685 pwmController;
 HT16K33 HT;
 State state;
+bool servoTest = false;
 
 uint8_t weichenPositionen[NUM_WEICHEN];
 
@@ -30,7 +31,7 @@ void updateServos() {
 }
 
 void updateServo(uint8_t s, bool verbose) {
-  uint16_t p = state.servos[s-1].position[weichenPositionen[s-1]] * 512 / 100;
+  uint16_t p = uint16_t(state.servos[s-1].position[weichenPositionen[s-1]]) * 512 / 100;
   if (verbose) {
     Serial.print(F("updateServo "));
     Serial.print(s);
@@ -81,6 +82,14 @@ uint8_t readWeichenKey() {
     return key;
 }
 
+void schalteWeiche(uint8_t w) {
+  uint8_t stellungen = 2;
+  if (state.weichen[w-1].typ == 1) {
+    stellungen += 1;
+  }
+  weichenPositionen[w-1] = (weichenPositionen[w-1]+1) % stellungen;
+}
+
 void loop() {  
   menu_loop();
 
@@ -103,15 +112,26 @@ void loop() {
       HT.setLed(ledBlinken - 1);
     }
     HT.sendLed();
+  } else if (servoTest) {
+    uint8_t w = readWeichenKey();
+    if (w != 0) {
+      servoTest = false;
+      updateServos();
+    } else {
+      static unsigned long last = 0;
+      if (millis() - last > 500) {
+        last = millis();
+        for (uint8_t w = 1; w <= NUM_WEICHEN; w++) {
+          schalteWeiche(w);  
+          updateServo(w, true);
+        }
+        updateLeds();
+      }
+    }
   } else {
     uint8_t w = readWeichenKey();
     if (w != 0) {
-      uint8_t stellungen = 2;
-      if (state.weichen[w-1].typ == 1) {
-        stellungen += 1;
-      }
-      weichenPositionen[w-1] = (weichenPositionen[w-1]+1) % stellungen;
-  
+      schalteWeiche(w);  
       updateLeds();
       updateServo(w, true);
     }

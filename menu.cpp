@@ -167,7 +167,7 @@ Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {
   state.servos[servo-1].position[r] = pos;
   saveData(state);
 
-  uint16_t p = pos * 512 / 100;
+  uint16_t p = uint16_t(pos) * 512 / 100;
   pwmController.setChannelPWM(servo-1, p);
 
   return Menu::proceed;
@@ -189,10 +189,26 @@ MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::w
   ,EXIT("<Zurueck")
 );
 
-MENU(mainMenu, "Stellpult", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
+extern bool servoTest;
+Menu::result servosTesten(Menu::eventMask e) {
+  servoTest = !servoTest;
+  if (servoTest) {
+    return Menu::quit;
+  } else {
+    updateServos();
+  }
+  return Menu::proceed;
+}
+Menu::result mainMenuEnter(Menu::eventMask e) {
+  servoTest = false;
+    updateServos();
+  return Menu::proceed;
+}
+MENU(mainMenu, "Stellpult", mainMenuEnter, Menu::enterEvent, Menu::noStyle
   ,SUBMENU(subWeichen)
   ,SUBMENU(subLeds)
   ,SUBMENU(subServos)
+  ,OP("Servos Testen",servosTesten,Menu::enterEvent)
   ,EXIT("<Zurueck")
 );
 
