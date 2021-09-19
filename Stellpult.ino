@@ -23,6 +23,23 @@ void updateLeds() {
   HT.sendLed();
 }
 
+void updateServos() {
+  for (uint8_t s=1; s<=NUM_SERVOS; s++) {
+    updateServo(s, false);
+  }
+}
+
+void updateServo(uint8_t s, bool verbose) {
+  uint16_t p = state.servos[s-1].position[weichenPositionen[s-1]] * 512 / 100;
+  if (verbose) {
+    Serial.print(F("updateServo "));
+    Serial.print(s);
+    Serial.print(F(" "));
+    Serial.println(p);
+  }
+  pwmController.setChannelPWM(s-1, p);
+}
+
 void setup() {
   Serial.begin(57600);
   while (!Serial) {}
@@ -40,6 +57,7 @@ void setup() {
   for (uint8_t w=0; w<NUM_WEICHEN; w++) {
     weichenPositionen[w] = state.weichen[w].anfangsstellung;
   }
+  updateServos();
   updateLeds();
   
   menu_setup();
@@ -95,9 +113,7 @@ void loop() {
       weichenPositionen[w-1] = (weichenPositionen[w-1]+1) % stellungen;
   
       updateLeds();
-  
-      uint16_t p = state.servos[w].position[weichenPositionen[w-1]] * 512 / 100;
-      pwmController.setChannelPWM(w-1, p);
+      updateServo(w, true);
     }
   }
 

@@ -1,4 +1,5 @@
 #include <menu.h>
+#include <PCA9685.h>
 #include <SSD1306Ascii.h>
 #include <SSD1306AsciiWire.h>
 #include <menuIO/SSD1306AsciiOut.h>
@@ -11,6 +12,8 @@
 #include "data.h"
 
 extern HT16K33 HT;
+extern PCA9685 pwmController;
+extern void updateServos();
 
 using namespace Menu;
 
@@ -58,7 +61,7 @@ Menu::result subWeichenSelected(Menu::eventMask e) {
   return Menu::proceed;
 }
 MENU(subWeichen, "Weichen einstellen", subWeichenSelected, Menu::enterEvent, Menu::wrapStyle
-  ,FIELD(weiche,"Nummer","",1,16,1,1,subWeichenSelected,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(weiche,"Nummer","",1,16,1,0,subWeichenSelected,Menu::enterEvent,Menu::wrapStyle)
   ,SUBMENU(selectTyp)
   ,SUBMENU(selectAnfangsstellung)
   ,EXIT("<Zurueck")
@@ -131,8 +134,8 @@ Menu::result subLedsWeicheChanged(Menu::eventMask e) {
   return Menu::proceed;
 }
 MENU(subLeds, "LEDs einstellen", subLedsSelected, Menu::enterEvent | Menu::exitEvent, Menu::wrapStyle
-  ,FIELD(led,"Nummer","",1,128,1,1,subLedsSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(weiche,"Weiche","",1,16,1,1,subLedsWeicheChanged,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(led,"Nummer","",1,128,1,0,subLedsSelected,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(weiche,"Weiche","",1,16,1,0,subLedsWeicheChanged,Menu::enterEvent,Menu::wrapStyle)
   ,SUBMENU(selectRichtung)
   ,EXIT("<Zurueck")
 );
@@ -150,25 +153,39 @@ Menu::result subServoSelected(Menu::eventMask e) {
   servoMitte = state.servos[servo-1].position[2];
   return Menu::proceed;
 }
-Menu::result subServoUpdated(Menu::eventMask e) {
+Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {
+  if (e == Menu::exitEvent) {
+    updateServos();
+    return Menu::proceed;
+  }
+
   Serial.print(F("subServoUpdated "));
-  Serial.print(servoLinks);
-  Serial.print(F(","));
-  Serial.print(servoRechts);
-  Serial.print(F(","));
-  Serial.println(servoMitte);
+  Serial.print(r);
+  Serial.print(F(" "));
+  Serial.println(pos);
   
-  state.servos[servo-1].position[0] = servoLinks;
-  state.servos[servo-1].position[1] = servoRechts;
-  state.servos[servo-1].position[2] = servoMitte;
+  state.servos[servo-1].position[r] = pos;
   saveData(state);
+
+  uint16_t p = pos * 512 / 100;
+  pwmController.setChannelPWM(servo-1, p);
+
   return Menu::proceed;
 }
+Menu::result subServoLinksUpdated(Menu::eventMask e) {
+  return subServoUpdated(e, 0, servoLinks);
+}
+Menu::result subServoRechtsUpdated(Menu::eventMask e) {
+  return subServoUpdated(e, 1, servoRechts);
+}
+Menu::result subServoMitteUpdated(Menu::eventMask e) {
+  return subServoUpdated(e, 2, servoMitte);
+}
 MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::wrapStyle
-  ,FIELD(servo,"Nummer","",1,16,1,1,subServoSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(servoLinks,"Position Links","%",0,100,1,1,subServoUpdated,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,1,subServoUpdated,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,1,subServoUpdated,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(servo,"Nummer","",1,16,1,0,subServoSelected,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(servoLinks,"Position Links","%",0,100,1,0,subServoLinksUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
+  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,0,subServoRechtsUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
+  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,0,subServoMitteUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
   ,EXIT("<Zurueck")
 );
 
