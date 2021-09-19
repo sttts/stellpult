@@ -60,7 +60,7 @@ Menu::result subWeichenSelected(Menu::eventMask e) {
   anfangsstellung = state.weichen[weiche-1].anfangsstellung;
   return Menu::proceed;
 }
-MENU(subWeichen, "Weichen einstellen", subWeichenSelected, Menu::enterEvent, Menu::wrapStyle
+MENU(subWeichen, "Weichen einstellen", subWeichenSelected, Menu::enterEvent, Menu::noStyle
   ,FIELD(weiche,"Nummer","",1,16,1,0,subWeichenSelected,Menu::enterEvent,Menu::wrapStyle)
   ,SUBMENU(selectTyp)
   ,SUBMENU(selectAnfangsstellung)
@@ -133,7 +133,7 @@ Menu::result subLedsWeicheChanged(Menu::eventMask e) {
   saveData(state);
   return Menu::proceed;
 }
-MENU(subLeds, "LEDs einstellen", subLedsSelected, Menu::enterEvent | Menu::exitEvent, Menu::wrapStyle
+MENU(subLeds, "LEDs einstellen", subLedsSelected, Menu::enterEvent | Menu::exitEvent, Menu::noStyle
   ,FIELD(led,"Nummer","",1,128,1,0,subLedsSelected,Menu::enterEvent,Menu::wrapStyle)
   ,FIELD(weiche,"Weiche","",1,16,1,0,subLedsWeicheChanged,Menu::enterEvent,Menu::wrapStyle)
   ,SUBMENU(selectRichtung)
@@ -200,12 +200,12 @@ Menu::result subServoWeicheSelected(Menu::eventMask e) {
 
   return Menu::proceed;  
 }
-MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::wrapStyle
+MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::noStyle
   ,FIELD(servo,"Nummer","",1,16,1,0,subServoSelected,Menu::enterEvent,Menu::wrapStyle)
   ,FIELD(weiche,"Weiche","",1,16,1,0,subServoWeicheSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(servoLinks,"Position Links","%",0,100,1,0,subServoLinksUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
-  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,0,subServoRechtsUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
-  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,0,subServoMitteUpdated,Menu::enterEvent | Menu::exitEvent,Menu::wrapStyle)
+  ,FIELD(servoLinks,"Position Links","%",0,100,1,0,subServoLinksUpdated,Menu::enterEvent | Menu::exitEvent,Menu::noStyle)
+  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,0,subServoRechtsUpdated,Menu::enterEvent | Menu::exitEvent,Menu::noStyle)
+  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,0,subServoMitteUpdated,Menu::enterEvent | Menu::exitEvent,Menu::noStyle)
   ,EXIT("<Zurueck")
 );
 
@@ -241,7 +241,7 @@ MENU(mainMenu, "Stellpult", mainMenuEnter, Menu::enterEvent, Menu::noStyle
   ,SUBMENU(subLeds)
   ,SUBMENU(subServos)
   ,OP("Servos Testen",servosTesten,Menu::enterEvent)
-  ,FIELD(brightness,"Helligkeit","",0,15,1,0,subServoBrightnessUpdated,Menu::enterEvent,Menu::wrapStyle)
+  ,FIELD(brightness,"Helligkeit","",0,15,1,0,subServoBrightnessUpdated,Menu::enterEvent,Menu::noStyle)
   ,EXIT("<Zurueck")
 );
 
