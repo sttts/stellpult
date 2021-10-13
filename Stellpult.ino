@@ -46,10 +46,11 @@ void setup() {
   Serial.begin(57600);
   while (!Serial) {}
 
-  loadData(state);
-  
   //Wire.begin();
   HT.begin(0x00); // 0x70 is added in the class
+  
+  loadData(state);
+  
   HT.setBrightness(state.brightness);
 
   pwmController.resetDevices();       // Resets all PCA9685 devices on i2c line
