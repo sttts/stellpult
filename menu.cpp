@@ -3,10 +3,10 @@
 #include <SSD1306Ascii.h>
 #include <SSD1306AsciiWire.h>
 #include <menuIO/SSD1306AsciiOut.h>
-#include <menuIO/encoderIn.h>
 #include <menuIO/chainStream.h>
-#include <menuIO/keyIn.h>
-#include <menuIO/keyIn.h>
+#include <menuIO/rotaryEventIn.h>
+#include <qdec.h> //https://github.com/SimpleHacks/QDEC
+#include <AceButton.h> // https://github.com/bxparks/AceButton
 
 #include "ht16k33.h"
 #include "data.h"
@@ -133,7 +133,7 @@ Menu::result subLedsWeicheChanged(Menu::eventMask e) {
   saveData(state);
   return Menu::proceed;
 }
-MENU(subLeds, "LEDs einstellen", subLedsSelected, Menu::enterEvent | Menu::exitEvent, Menu::noStyle
+MENU(subLeds, "LEDs einstellen", subLedsSelected, static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent), Menu::noStyle
   ,FIELD(led,"Nummer","",1,128,1,0,subLedsSelected,Menu::enterEvent,Menu::wrapStyle)
   ,FIELD(weiche,"Weiche","",1,16,1,0,subLedsWeicheChanged,Menu::enterEvent,Menu::wrapStyle)
   ,SUBMENU(selectRichtung)
@@ -203,9 +203,9 @@ Menu::result subServoWeicheSelected(Menu::eventMask e) {
 MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::noStyle
   ,FIELD(servo,"Nummer","",1,16,1,0,subServoSelected,Menu::enterEvent,Menu::wrapStyle)
   ,FIELD(weiche,"Weiche","",1,16,1,0,subServoWeicheSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(servoLinks,"Position Links","%",0,100,1,0,subServoLinksUpdated,Menu::enterEvent | Menu::exitEvent,Menu::noStyle)
-  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,0,subServoRechtsUpdated,Menu::enterEvent | Menu::exitEvent,Menu::noStyle)
-  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,0,subServoMitteUpdated,Menu::enterEvent | Menu::exitEvent,Menu::noStyle)
+  ,FIELD(servoLinks,"Position Links","%",0,100,1,0,subServoLinksUpdated,static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent),Menu::noStyle)
+  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,0,subServoRechtsUpdated,static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent),Menu::noStyle)
+  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,0,subServoMitteUpdated,static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent),Menu::noStyle)
   ,EXIT("<Zurueck")
 );
 
@@ -260,14 +260,38 @@ menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
 outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 
 // Input
-#define encA    A8 // A1
-#define encB    A9 // A0
+#define encA    A1 // A8 (mega)
+#define encB    A0 // A9 (mega)
 #define encBtn  A2
-encoderIn<encA,encB> encoder; // simple quad encoder driver
-encoderInStream<encA,encB> encStream(encoder,4); // simple quad encoder fake Stream
-keyMap encBtn_map[]={{-encBtn,defaultNavCodes[enterCmd].ch}}; // negative pin numbers use internal pull-up, this is on when low
-keyIn<1> encButton(encBtn_map); // 1 is the number of keys
-MENU_INPUTS(in,&encStream,&encButton);
+using namespace ::ace_button;
+using namespace ::SimpleHacks;
+QDecoder qdec(uint16_t(encA), uint16_t(encB), true); // rotary part
+AceButton button(encBtn); // button part
+RotaryEventIn reIn(
+  RotaryEventIn::EventType::BUTTON_CLICKED | // select
+  RotaryEventIn::EventType::BUTTON_LONG_PRESSED | // also back
+  RotaryEventIn::EventType::ROTARY_CCW | // up
+  RotaryEventIn::EventType::ROTARY_CW // down
+); // register capabilities, see AndroidMenu MenuIO/RotaryEventIn.h file
+MENU_INPUTS(in,&reIn);
+void handleButtonEvent(AceButton* /* button */, uint8_t eventType, uint8_t buttonState) {
+  switch (eventType) {
+    case AceButton::kEventClicked:
+      reIn.registerEvent(RotaryEventIn::EventType::BUTTON_CLICKED);
+      break;
+    case AceButton::kEventDoubleClicked:
+      reIn.registerEvent(RotaryEventIn::EventType::BUTTON_DOUBLE_CLICKED);
+      break;
+    case AceButton::kEventLongPressed:
+      reIn.registerEvent(RotaryEventIn::EventType::BUTTON_LONG_PRESSED);
+      break;
+  }
+}
+void IsrForQDEC(void) { 
+  QDECODER_EVENT event = qdec.update();
+  if (event & QDECODER_EVENT_CW) { reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CW); }
+  else if (event & QDECODER_EVENT_CCW) { reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CCW); }
+}
 
 NAVROOT(nav,mainMenu,MAX_DEPTH,in,out);
 
@@ -289,8 +313,21 @@ void menu_setup() {
   
   oled.clear();
   
-  encButton.begin();
-  encoder.begin();
+  // setup rotary encoder
+  qdec.begin();
+  attachInterrupt(digitalPinToInterrupt(encA), IsrForQDEC, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(encB), IsrForQDEC, CHANGE);
+
+  // setup rotary button
+  pinMode(encBtn, INPUT);
+  ButtonConfig* buttonConfig = button.getButtonConfig();
+  buttonConfig->setEventHandler(handleButtonEvent);
+  buttonConfig->setFeature(ButtonConfig::kFeatureClick);
+  buttonConfig->setFeature(ButtonConfig::kFeatureDoubleClick);
+  buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
+  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressClickBeforeDoubleClick);
+  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterClick);
+  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterDoubleClick);
 }
 
 extern uint8_t readWeichenKey();
