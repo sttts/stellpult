@@ -1,4 +1,5 @@
 #include <PCA9685.h>
+#include <Arduino.h>
 #include "ht16k33.h"
 #include "menu.h"
 #include "data.h"
@@ -45,12 +46,21 @@ void updateServo(uint8_t s, bool verbose) {
 void setup() {
   Serial.begin(57600);
   while (!Serial) {}
+  Serial.println(F("Start"));
 
-  //Wire.begin();
-  HT.begin(0x00); // 0x70 is added in the class
+  HT.begin(0x00); // 0x70 is added in the class; also starts i2c
+
+  for (int i = 0; i < 128; i++) {
+    Wire.beginTransmission(i);
+    Wire.write(0);
+    if (Wire.endTransmission()==0) {
+      Serial.print(F("Found i2c device "));
+      Serial.println(i);
+    }
+  }
+  
   
   loadData(state);
-  
   HT.setBrightness(state.brightness);
 
   pwmController.resetDevices();       // Resets all PCA9685 devices on i2c line
