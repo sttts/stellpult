@@ -5,7 +5,7 @@
 #include <menuIO/SSD1306AsciiOut.h>
 #include <menuIO/chainStream.h>
 #include <menuIO/rotaryEventIn.h>
-#include <qdec.h> //https://github.com/SimpleHacks/QDEC
+#include <Encoder.h>
 #include <AceButton.h> // https://github.com/bxparks/AceButton
 
 #include "ht16k33.h"
@@ -260,13 +260,12 @@ menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
 outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 
 // Input
-#define encA    A1 // A8 (mega)
-#define encB    A0 // A9 (mega)
-#define encBtn  A2
+#define encA    3 // A8 (mega)
+#define encB    2 // A9 (mega)
+#define encBtn  9
 using namespace ::ace_button;
-using namespace ::SimpleHacks;
-QDecoder qdec(uint16_t(encA), uint16_t(encB), true); // rotary part
 AceButton button(encBtn); // button part
+Encoder enc(2, 3);
 RotaryEventIn reIn(
   RotaryEventIn::EventType::BUTTON_CLICKED | // select
   RotaryEventIn::EventType::BUTTON_LONG_PRESSED | // also back
@@ -275,6 +274,10 @@ RotaryEventIn reIn(
 ); // register capabilities, see AndroidMenu MenuIO/RotaryEventIn.h file
 MENU_INPUTS(in, &reIn);
 void handleButtonEvent(AceButton* /* button */, uint8_t eventType, uint8_t buttonState) {
+  Serial.print("handleButtonEvent ");
+  Serial.print(eventType);
+  Serial.print(" ");
+  Serial.println(buttonState);
   switch (eventType) {
     case AceButton::kEventClicked:
       reIn.registerEvent(RotaryEventIn::EventType::BUTTON_CLICKED);
@@ -287,22 +290,12 @@ void handleButtonEvent(AceButton* /* button */, uint8_t eventType, uint8_t butto
       break;
   }
 }
-void IsrForQDEC(void) {
-  QDECODER_EVENT event = qdec.update();
-  if (event & QDECODER_EVENT_CW) {
-    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CW);
-  }
-  else if (event & QDECODER_EVENT_CCW) {
-    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CCW);
-  }
-}
 
 NAVROOT(nav, mainMenu, MAX_DEPTH, in, out);
 
 void menu_setup() {
-  pinMode(encA, INPUT);
-  pinMode(encB, INPUT);
-  pinMode(encBtn, INPUT);  
+  /*pinMode(encA, INPUT);
+  pinMode(encB, INPUT);*/
   pinMode(LED_BUILTIN, OUTPUT);
 
   nav.timeOut = 180;
@@ -317,13 +310,8 @@ void menu_setup() {
 
   oled.clear();
 
-  // setup rotary encoder
-  qdec.begin();
-  attachInterrupt(digitalPinToInterrupt(encA), IsrForQDEC, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(encB), IsrForQDEC, CHANGE);
-
   // setup rotary button
-  pinMode(encBtn, INPUT);
+  pinMode(encBtn, INPUT_PULLUP);
   ButtonConfig* buttonConfig = button.getButtonConfig();
   buttonConfig->setEventHandler(handleButtonEvent);
   buttonConfig->setFeature(ButtonConfig::kFeatureClick);
@@ -335,8 +323,24 @@ void menu_setup() {
 }
 
 extern uint8_t readWeichenKey();
+long oldEncPos = 0;
 
 void menu_loop() {
+  button.check();
+
+  // send events from rotary
+  long endPos = enc.read() / 4;
+  if (endPos != oldEncPos) {
+    Serial.println(endPos);
+  }
+  for (long i = endPos; i < oldEncPos; i++) {
+    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CW);
+  }
+  for (long i = endPos; i > oldEncPos; i--) {
+    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CCW);
+  }
+  oldEncPos = endPos;
+  
   nav.poll();
 
   if (ledBlinken) {
