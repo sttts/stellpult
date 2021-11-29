@@ -27,63 +27,63 @@ byte typ = 0;
 Menu::result selectTypChanged(Menu::eventMask e) {
   Serial.print(F("selectTypChanged "));
   Serial.println(typ);
-  
-  state.weichen[weiche-1].typ = typ;
+
+  state.weichen[weiche - 1].typ = typ;
   saveData(state);
   return Menu::proceed;
 }
-SELECT(typ,selectTyp,"Typ: ",selectTypChanged,Menu::exitEvent,Menu::noStyle
-  ,VALUE("Doppelweiche",0,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Dreifachweiche",1,Menu::doNothing,Menu::noEvent)
-);
+SELECT(typ, selectTyp, "Typ: ", selectTypChanged, Menu::exitEvent, Menu::noStyle
+       , VALUE("Doppelweiche", 0, Menu::doNothing, Menu::noEvent)
+       , VALUE("Dreifachweiche", 1, Menu::doNothing, Menu::noEvent)
+      );
 
 byte anfangsstellung = 0;
 Menu::result selectAnfangsstellungChanged(Menu::eventMask e) {
   Serial.print(F("selectAnfangsStellungChanged "));
   Serial.println(anfangsstellung);
-  
-  state.weichen[weiche-1].anfangsstellung = anfangsstellung;
+
+  state.weichen[weiche - 1].anfangsstellung = anfangsstellung;
   saveData(state);
   return Menu::proceed;
 }
-SELECT(anfangsstellung,selectAnfangsstellung,"Beim Start: ",selectAnfangsstellungChanged,Menu::exitEvent,Menu::noStyle
-  ,VALUE("Links",0,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Rechts",1,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Mitte",2,Menu::doNothing,Menu::noEvent)
-);
+SELECT(anfangsstellung, selectAnfangsstellung, "Beim Start: ", selectAnfangsstellungChanged, Menu::exitEvent, Menu::noStyle
+       , VALUE("Links", 0, Menu::doNothing, Menu::noEvent)
+       , VALUE("Rechts", 1, Menu::doNothing, Menu::noEvent)
+       , VALUE("Mitte", 2, Menu::doNothing, Menu::noEvent)
+      );
 
 Menu::result subWeichenSelected(Menu::eventMask e) {
   Serial.print(F("subWeichenSelected "));
   Serial.println(weiche);
-  
-  typ = state.weichen[weiche-1].typ;
-  anfangsstellung = state.weichen[weiche-1].anfangsstellung;
+
+  typ = state.weichen[weiche - 1].typ;
+  anfangsstellung = state.weichen[weiche - 1].anfangsstellung;
   return Menu::proceed;
 }
 MENU(subWeichen, "Weichen einstellen", subWeichenSelected, Menu::enterEvent, Menu::noStyle
-  ,FIELD(weiche,"Nummer","",1,16,1,0,subWeichenSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,SUBMENU(selectTyp)
-  ,SUBMENU(selectAnfangsstellung)
-  ,EXIT("<Zurueck")
-);
+     , FIELD(weiche, "Nummer", "", 1, 16, 1, 0, subWeichenSelected, Menu::enterEvent, Menu::wrapStyle)
+     , SUBMENU(selectTyp)
+     , SUBMENU(selectAnfangsstellung)
+     , EXIT("<Zurueck")
+    );
 
 byte richtung = 0;
 Menu::result subLedsRichtungChanged(Menu::eventMask e) {
   Serial.print(F("subLedsRichtungChanged "));
   Serial.println(richtung);
-  
-  state.leds[led-1].richtung = richtung;
+
+  state.leds[led - 1].richtung = richtung;
   saveData(state);
-  
+
   // Richtung aufblinken lassen
   if (richtung == 1 || richtung == 2 || richtung == 4) {
-    for (uint8_t led=0; led<NUM_LEDS; led++) {
+    for (uint8_t led = 0; led < NUM_LEDS; led++) {
       uint8_t w = state.leds[led].weiche + 1;
       if (w != weiche) {
         continue;
       }
       uint8_t r = state.leds[led].richtung;
-      if (state.leds[led].richtung&richtung) {
+      if (state.leds[led].richtung & richtung) {
         HT.setLed(led);
       } else {
         HT.clearLed(led);
@@ -98,16 +98,16 @@ Menu::result subLedsRichtungChanged(Menu::eventMask e) {
 
   return Menu::proceed;
 }
-SELECT(richtung,selectRichtung,"Richtung: ",subLedsRichtungChanged,Menu::exitEvent,Menu::noStyle
-  ,VALUE("Links",1,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Rechts",2,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Mitte",4,Menu::doNothing,Menu::noEvent)
-  ,VALUE("immer an",7,Menu::doNothing,Menu::noEvent)
-  ,VALUE("nie an",0,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Links aus",6,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Rechts aus",5,Menu::doNothing,Menu::noEvent)
-  ,VALUE("Mitte aus",3,Menu::doNothing,Menu::noEvent)
-);
+SELECT(richtung, selectRichtung, "Richtung: ", subLedsRichtungChanged, Menu::exitEvent, Menu::noStyle
+       , VALUE("Links", 1, Menu::doNothing, Menu::noEvent)
+       , VALUE("Rechts", 2, Menu::doNothing, Menu::noEvent)
+       , VALUE("Mitte", 4, Menu::doNothing, Menu::noEvent)
+       , VALUE("immer an", 7, Menu::doNothing, Menu::noEvent)
+       , VALUE("nie an", 0, Menu::doNothing, Menu::noEvent)
+       , VALUE("Links aus", 6, Menu::doNothing, Menu::noEvent)
+       , VALUE("Rechts aus", 5, Menu::doNothing, Menu::noEvent)
+       , VALUE("Mitte aus", 3, Menu::doNothing, Menu::noEvent)
+      );
 
 Menu::result subLedsSelected(Menu::eventMask e) {
   if (e == Menu::exitEvent) {
@@ -115,30 +115,30 @@ Menu::result subLedsSelected(Menu::eventMask e) {
     return Menu::proceed;
   }
   ledBlinken = led;
-  
+
   Serial.print(F("subLedsSelected "));
   Serial.println(led);
   Serial.println(e);
 
-  weiche = state.leds[led-1].weiche+1;
-  richtung = state.leds[led-1].richtung;
+  weiche = state.leds[led - 1].weiche + 1;
+  richtung = state.leds[led - 1].richtung;
   return Menu::proceed;
 }
 Menu::result subLedsWeicheChanged(Menu::eventMask e) {
   Serial.print(F("subLedsWeicheChanged "));
   Serial.println(weiche);
-  
-  state.leds[led-1].weiche = weiche-1;
-  state.leds[led-1].richtung = richtung;
+
+  state.leds[led - 1].weiche = weiche - 1;
+  state.leds[led - 1].richtung = richtung;
   saveData(state);
   return Menu::proceed;
 }
 MENU(subLeds, "LEDs einstellen", subLedsSelected, static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent), Menu::noStyle
-  ,FIELD(led,"Nummer","",1,128,1,0,subLedsSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(weiche,"Weiche","",1,16,1,0,subLedsWeicheChanged,Menu::enterEvent,Menu::wrapStyle)
-  ,SUBMENU(selectRichtung)
-  ,EXIT("<Zurueck")
-);
+     , FIELD(led, "Nummer", "", 1, 128, 1, 0, subLedsSelected, Menu::enterEvent, Menu::wrapStyle)
+     , FIELD(weiche, "Weiche", "", 1, 16, 1, 0, subLedsWeicheChanged, Menu::enterEvent, Menu::wrapStyle)
+     , SUBMENU(selectRichtung)
+     , EXIT("<Zurueck")
+    );
 
 byte servo = 1;
 byte servoLinks = 50;
@@ -147,11 +147,11 @@ byte servoMitte = 50;
 Menu::result subServoSelected(Menu::eventMask e) {
   Serial.print(F("subServoSelected "));
   Serial.println(servo);
-  
-  servoLinks = state.servos[servo-1].position[0];
-  servoRechts = state.servos[servo-1].position[1];
-  servoMitte = state.servos[servo-1].position[2];
-  weiche = state.servos[servo-1].weiche+1;
+
+  servoLinks = state.servos[servo - 1].position[0];
+  servoRechts = state.servos[servo - 1].position[1];
+  servoMitte = state.servos[servo - 1].position[2];
+  weiche = state.servos[servo - 1].weiche + 1;
   return Menu::proceed;
 }
 Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {
@@ -164,13 +164,13 @@ Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {
   Serial.print(r);
   Serial.print(F(" "));
   Serial.println(pos);
-  
-  state.servos[servo-1].position[r] = pos;
+
+  state.servos[servo - 1].position[r] = pos;
   saveData(state);
 
   // Servos der gleichen Weiche auf gleiche Stellung bringen
   for (uint8_t peer = 0; peer < NUM_SERVOS; peer++) {
-    if (state.servos[peer].weiche != state.servos[servo-1].weiche || peer == servo-1) {
+    if (state.servos[peer].weiche != state.servos[servo - 1].weiche || peer == servo - 1) {
       continue;
     }
     uint16_t p = uint16_t(state.servos[peer].position[r]) * 512 / 100;
@@ -178,7 +178,7 @@ Menu::result subServoUpdated(Menu::eventMask e, uint8_t r, uint8_t pos) {
   }
 
   uint16_t p = uint16_t(pos) * 512 / 100;
-  pwmController.setChannelPWM(servo-1, p);
+  pwmController.setChannelPWM(servo - 1, p);
 
   return Menu::proceed;
 }
@@ -195,19 +195,19 @@ Menu::result subServoWeicheSelected(Menu::eventMask e) {
   Serial.print(F("subServoWeicheSelected "));
   Serial.println(weiche);
 
-  state.servos[servo-1].weiche = weiche;
+  state.servos[servo - 1].weiche = weiche;
   saveData(state);
 
-  return Menu::proceed;  
+  return Menu::proceed;
 }
 MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::noStyle
-  ,FIELD(servo,"Nummer","",1,16,1,0,subServoSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(weiche,"Weiche","",1,16,1,0,subServoWeicheSelected,Menu::enterEvent,Menu::wrapStyle)
-  ,FIELD(servoLinks,"Position Links","%",0,100,1,0,subServoLinksUpdated,static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent),Menu::noStyle)
-  ,FIELD(servoRechts,"Position Rechts","%",0,100,1,0,subServoRechtsUpdated,static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent),Menu::noStyle)
-  ,FIELD(servoMitte,"Position Mitte","%",0,100,1,0,subServoMitteUpdated,static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent),Menu::noStyle)
-  ,EXIT("<Zurueck")
-);
+     , FIELD(servo, "Nummer", "", 1, 16, 1, 0, subServoSelected, Menu::enterEvent, Menu::wrapStyle)
+     , FIELD(weiche, "Weiche", "", 1, 16, 1, 0, subServoWeicheSelected, Menu::enterEvent, Menu::wrapStyle)
+     , FIELD(servoLinks, "Position Links", "%", 0, 100, 1, 0, subServoLinksUpdated, static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent), Menu::noStyle)
+     , FIELD(servoRechts, "Position Rechts", "%", 0, 100, 1, 0, subServoRechtsUpdated, static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent), Menu::noStyle)
+     , FIELD(servoMitte, "Position Mitte", "%", 0, 100, 1, 0, subServoMitteUpdated, static_cast<Menu::eventMask>(Menu::enterEvent | Menu::exitEvent), Menu::noStyle)
+     , EXIT("<Zurueck")
+    );
 
 extern bool servoTest;
 uint8_t brightness = 15;
@@ -237,13 +237,13 @@ Menu::result subServoBrightnessUpdated(Menu::eventMask e) {
   return Menu::proceed;
 }
 MENU(mainMenu, "Stellpult", mainMenuEnter, Menu::enterEvent, Menu::noStyle
-  ,SUBMENU(subWeichen)
-  ,SUBMENU(subLeds)
-  ,SUBMENU(subServos)
-  ,OP("Servos Testen",servosTesten,Menu::enterEvent)
-  ,FIELD(brightness,"Helligkeit","",0,15,1,0,subServoBrightnessUpdated,Menu::enterEvent,Menu::noStyle)
-  ,EXIT("<Zurueck")
-);
+     , SUBMENU(subWeichen)
+     , SUBMENU(subLeds)
+     , SUBMENU(subServos)
+     , OP("Servos Testen", servosTesten, Menu::enterEvent)
+     , FIELD(brightness, "Helligkeit", "", 0, 15, 1, 0, subServoBrightnessUpdated, Menu::enterEvent, Menu::noStyle)
+     , EXIT("<Zurueck")
+    );
 
 // Display
 #define I2C_ADDRESS 0x3C
@@ -255,7 +255,7 @@ const panel panels[] MEMMODE = {{0, 0, 128 / fontW, 64 / fontH}};
 navNode* nodes[sizeof(panels) / sizeof(panel)]; // navNodes to store navigation status
 panelsList pList(panels, nodes, 1); // a list of panels and nodes
 idx_t tops[MAX_DEPTH] = {0, 0};
-SSD1306AsciiOut outOLED(&oled, tops, pList, 8, 1+((fontH-1)>>3) ); // oled output device menu driver
+SSD1306AsciiOut outOLED(&oled, tops, pList, 8, 1+((fontH - 1) >> 3) ); // oled output device menu driver
 menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
 outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 
@@ -273,7 +273,7 @@ RotaryEventIn reIn(
   RotaryEventIn::EventType::ROTARY_CCW | // up
   RotaryEventIn::EventType::ROTARY_CW // down
 ); // register capabilities, see AndroidMenu MenuIO/RotaryEventIn.h file
-MENU_INPUTS(in,&reIn);
+MENU_INPUTS(in, &reIn);
 void handleButtonEvent(AceButton* /* button */, uint8_t eventType, uint8_t buttonState) {
   switch (eventType) {
     case AceButton::kEventClicked:
@@ -287,13 +287,17 @@ void handleButtonEvent(AceButton* /* button */, uint8_t eventType, uint8_t butto
       break;
   }
 }
-void IsrForQDEC(void) { 
+void IsrForQDEC(void) {
   QDECODER_EVENT event = qdec.update();
-  if (event & QDECODER_EVENT_CW) { reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CW); }
-  else if (event & QDECODER_EVENT_CCW) { reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CCW); }
+  if (event & QDECODER_EVENT_CW) {
+    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CW);
+  }
+  else if (event & QDECODER_EVENT_CCW) {
+    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CCW);
+  }
 }
 
-NAVROOT(nav,mainMenu,MAX_DEPTH,in,out);
+NAVROOT(nav, mainMenu, MAX_DEPTH, in, out);
 
 void menu_setup() {
   pinMode(encA, INPUT);
@@ -302,7 +306,7 @@ void menu_setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   nav.timeOut = 180;
-  
+
   oled.begin(&Adafruit128x64, I2C_ADDRESS);
   oled.setFont(menuFont);
   oled.clear();
@@ -310,9 +314,9 @@ void menu_setup() {
   oled.print(F("Stellpult"));
 
   delay(2000);
-  
+
   oled.clear();
-  
+
   // setup rotary encoder
   qdec.begin();
   attachInterrupt(digitalPinToInterrupt(encA), IsrForQDEC, CHANGE);
@@ -338,7 +342,7 @@ void menu_loop() {
   if (ledBlinken) {
     uint8_t w = readWeichenKey();
     if (w > 0 && w == weiche) {
-      bool dreier = state.weichen[w-1].typ == 1;
+      bool dreier = state.weichen[w - 1].typ == 1;
       if (richtung == 1) {
         richtung = 2;
       } else if (richtung == 2) {
@@ -355,7 +359,7 @@ void menu_loop() {
       weiche = w;
       subLedsWeicheChanged(Menu::enterEvent);
 
-      if (state.leds[led-1].richtung == 0) {
+      if (state.leds[led - 1].richtung == 0) {
         richtung = 1;
       }
       subLedsRichtungChanged(Menu::enterEvent);
