@@ -3,10 +3,10 @@
 #include <SSD1306Ascii.h>
 #include <SSD1306AsciiWire.h>
 #include <menuIO/SSD1306AsciiOut.h>
+#include <menuIO/encoderIn.h>
 #include <menuIO/chainStream.h>
-#include <menuIO/rotaryEventIn.h>
-#include <Encoder.h>
-#include <AceButton.h> // https://github.com/bxparks/AceButton
+#include <menuIO/keyIn.h>
+#include <menuIO/keyIn.h>
 
 #include "ht16k33.h"
 #include "data.h"
@@ -263,33 +263,11 @@ outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 #define encA    3 // A8 (mega)
 #define encB    2 // A9 (mega)
 #define encBtn  9
-using namespace ::ace_button;
-AceButton button(encBtn); // button part
-Encoder enc(2, 3);
-RotaryEventIn reIn(
-  RotaryEventIn::EventType::BUTTON_CLICKED | // select
-  RotaryEventIn::EventType::BUTTON_LONG_PRESSED | // also back
-  RotaryEventIn::EventType::ROTARY_CCW | // up
-  RotaryEventIn::EventType::ROTARY_CW // down
-); // register capabilities, see AndroidMenu MenuIO/RotaryEventIn.h file
-MENU_INPUTS(in, &reIn);
-void handleButtonEvent(AceButton* /* button */, uint8_t eventType, uint8_t buttonState) {
-  Serial.print("handleButtonEvent ");
-  Serial.print(eventType);
-  Serial.print(" ");
-  Serial.println(buttonState);
-  switch (eventType) {
-    case AceButton::kEventClicked:
-      reIn.registerEvent(RotaryEventIn::EventType::BUTTON_CLICKED);
-      break;
-    case AceButton::kEventDoubleClicked:
-      reIn.registerEvent(RotaryEventIn::EventType::BUTTON_DOUBLE_CLICKED);
-      break;
-    case AceButton::kEventLongPressed:
-      reIn.registerEvent(RotaryEventIn::EventType::BUTTON_LONG_PRESSED);
-      break;
-  }
-}
+encoderIn<encA,encB> encoder; // simple quad encoder driver
+encoderInStream<encA,encB> encStream(encoder,4); // simple quad encoder fake Stream
+keyMap encBtn_map[]={{-encBtn,defaultNavCodes[enterCmd].ch}}; // negative pin numbers use internal pull-up, this is on when low
+keyIn<1> encButton(encBtn_map); // 1 is the number of keys
+MENU_INPUTS(in,&encStream,&encButton);
 
 NAVROOT(nav, mainMenu, MAX_DEPTH, in, out);
 
@@ -309,38 +287,14 @@ void menu_setup() {
   delay(2000);
 
   oled.clear();
-
-  // setup rotary button
-  pinMode(encBtn, INPUT_PULLUP);
-  ButtonConfig* buttonConfig = button.getButtonConfig();
-  buttonConfig->setEventHandler(handleButtonEvent);
-  buttonConfig->setFeature(ButtonConfig::kFeatureClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureDoubleClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
-  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressClickBeforeDoubleClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterDoubleClick);
+  
+  encButton.begin();
+  encoder.begin();
 }
 
 extern uint8_t readWeichenKey();
-long oldEncPos = 0;
 
 void menu_loop() {
-  button.check();
-
-  // send events from rotary
-  long endPos = enc.read() / 4;
-  if (endPos != oldEncPos) {
-    Serial.println(endPos);
-  }
-  for (long i = endPos; i < oldEncPos; i++) {
-    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CW);
-  }
-  for (long i = endPos; i > oldEncPos; i--) {
-    reIn.registerEvent(RotaryEventIn::EventType::ROTARY_CCW);
-  }
-  oldEncPos = endPos;
-  
   nav.poll();
 
   if (ledBlinken) {
