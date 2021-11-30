@@ -3,13 +3,12 @@
 #include <SSD1306Ascii.h>
 #include <SSD1306AsciiWire.h>
 #include <menuIO/SSD1306AsciiOut.h>
-#include <menuIO/encoderIn.h>
 #include <menuIO/chainStream.h>
-#include <menuIO/keyIn.h>
 #include <menuIO/keyIn.h>
 
 #include "ht16k33.h"
 #include "data.h"
+#include "encoderIn.h"
 
 extern HT16K33 HT;
 extern PCA9685 pwmController;
@@ -260,11 +259,11 @@ menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
 outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 
 // Input
-#define encA    3 // A8 (mega)
-#define encB    2 // A9 (mega)
+#define encA    2 // A8 (mega)
+#define encB    3 // A9 (mega)
 #define encBtn  9
-encoderIn<encA,encB> encoder; // simple quad encoder driver
-encoderInStream<encA,encB> encStream(encoder,4); // simple quad encoder fake Stream
+Encoder encoder(encA, encB); // simple quad encoder driver
+encoderInStream<encA,encB> encStream(encoder, 4); // simple quad encoder fake Stream
 keyMap encBtn_map[]={{-encBtn,defaultNavCodes[enterCmd].ch}}; // negative pin numbers use internal pull-up, this is on when low
 keyIn<1> encButton(encBtn_map); // 1 is the number of keys
 MENU_INPUTS(in,&encStream,&encButton);
@@ -289,7 +288,6 @@ void menu_setup() {
   oled.clear();
   
   encButton.begin();
-  encoder.begin();
 }
 
 extern uint8_t readWeichenKey();
