@@ -3,6 +3,7 @@
 #include "ht16k33.h"
 #include "menu.h"
 #include "data.h"
+#include "watchdog.h"
 
 PCA9685 pwmController;
 HT16K33 HT;
@@ -45,7 +46,8 @@ void updateServo(uint8_t s, bool verbose) {
 
 void setup() {
   Serial.begin(57600);
-  //while (!Serial) {}
+  unsigned long start = millis();
+  while (!Serial || millis() < start + 1000) {}
   Serial.println(F("Start"));
 
   HT.begin(0x00); // 0x70 is added in the class; also starts i2c
@@ -73,7 +75,8 @@ void setup() {
   }
   updateServos();
   updateLeds();
-  
+
+  watchdog_setup();
   menu_setup();
 }
 
@@ -103,7 +106,8 @@ void schalteWeiche(uint8_t w) {
   weichenPositionen[w-1] = (weichenPositionen[w-1]+1) % stellungen;
 }
 
-void loop() {  
+void loop() { 
+  watchdog_loop(); 
   menu_loop();
 
   if (ledBlinken == 0 && ledBlinkenAlt != 0) {

@@ -283,7 +283,7 @@ void menu_setup() {
   oled.setCursor(0, 0);
   oled.print(F("Stellpult"));
 
-  delay(2000);
+  delay(1000);
 
   oled.clear();
   
