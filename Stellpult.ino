@@ -45,10 +45,12 @@ void updateServo(uint8_t s, bool verbose) {
 
 void setup() {
   Serial.begin(57600);
-  while (!Serial) {}
+  //while (!Serial) {}
   Serial.println(F("Start"));
 
   HT.begin(0x00); // 0x70 is added in the class; also starts i2c
+
+  //Wire.setClock(100000L);
 
   for (int i = 0; i < 128; i++) {
     Wire.beginTransmission(i);
@@ -58,7 +60,6 @@ void setup() {
       Serial.println(i);
     }
   }
-  
   
   loadData(state);
   HT.setBrightness(state.brightness);

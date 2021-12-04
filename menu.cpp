@@ -259,8 +259,8 @@ menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
 outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
 
 // Input
-#define encA    2 // A8 (mega)
-#define encB    3 // A9 (mega)
+#define encA    3 // A8 (mega)
+#define encB    2 // A9 (mega)
 #define encBtn  9
 Encoder encoder(encA, encB); // simple quad encoder driver
 encoderInStream<encA,encB> encStream(encoder, 4); // simple quad encoder fake Stream
