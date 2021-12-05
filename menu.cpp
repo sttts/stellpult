@@ -304,6 +304,7 @@ void menu_setup() {
 
   Wire.begin();
   gfx.begin(I2C_ADDRESS);
+  gfx.setRotation(2);
   gfx.clearDisplay();
   //gfx.setFont(&FreeMono9pt7b);
   gfx.setCursor(0, 0);
