@@ -1,11 +1,11 @@
 #include <menu.h>
+#include <Adafruit_SSD1327.h>
+#include <Adafruit_GFX.h>
+//#include <Fonts/FreeSans12pt7b.h>
 #include <PCA9685.h>
-#include <SSD1306Ascii.h>
-#include <SSD1306AsciiWire.h>
-#include <menuIO/SSD1306AsciiOut.h>
+#include <menuIO/adafruitGfxOut.h>
 #include <menuIO/chainStream.h>
 #include <menuIO/keyIn.h>
-
 #include "ht16k33.h"
 #include "data.h"
 #include "encoderIn.h"
@@ -245,18 +245,41 @@ MENU(mainMenu, "Stellpult", mainMenuEnter, Menu::enterEvent, Menu::noStyle
     );
 
 // Display
-#define I2C_ADDRESS 0x3C
-#define menuFont font5x7
-#define fontW 5
-#define fontH 7
-SSD1306AsciiWire oled;
-const panel panels[] MEMMODE = {{0, 0, 128 / fontW, 64 / fontH}};
-navNode* nodes[sizeof(panels) / sizeof(panel)]; // navNodes to store navigation status
-panelsList pList(panels, nodes, 1); // a list of panels and nodes
-idx_t tops[MAX_DEPTH] = {0, 0};
-SSD1306AsciiOut outOLED(&oled, tops, pList, 8, 1+((fontH - 1) >> 3) ); // oled output device menu driver
-menuOut* constMEM outputs[] MEMMODE = {&outOLED}; // list of output devices
-outputsList out(outputs, sizeof(outputs) / sizeof(menuOut*)); // outputs list
+//each color is in the format:
+//  {{disabled normal,disabled selected},{enabled normal,enabled selected, enabled editing}}
+// this is a monochromatic color table
+#define BLACK 0
+#define DARK 3
+#define GRAY 7
+#define LIGHT 11
+#define WHITE 15
+const colorDef<uint16_t> colors[6] MEMMODE={
+  /*
+  {{0,0},{0,1,1}},//bgColor
+  {{1,1},{1,0,0}},//fgColor
+  {{1,1},{1,0,0}},//valColor
+  {{1,1},{1,0,0}},//unitColor
+  {{0,1},{0,0,1}},//cursorColor
+  {{1,1},{1,0,0}},//titleColor
+  */
+  {{BLACK,GRAY},{BLACK,LIGHT,WHITE}},//bgColor
+  {{GRAY,DARK},{LIGHT,DARK,BLACK}},//fgColor
+  {{GRAY,LIGHT},{WHITE,BLACK,BLACK}},//valColor
+  {{GRAY,WHITE},{WHITE,BLACK,BLACK}},//unitColor
+  {{BLACK,WHITE},{BLACK,BLACK,WHITE}},//cursorColor
+  {{GRAY,GRAY},{WHITE,BLACK,BLACK}},//titleColor
+};
+#define fontX 6
+#define fontY 11
+#define gfxWidth 128
+#define gfxHeight 128
+#define I2C_ADDRESS 0x3c
+#define OLED_RESET -1
+Adafruit_SSD1327 gfx(128, 128, &Wire, OLED_RESET, 1000000);
+MENU_OUTPUTS(out,MAX_DEPTH
+  ,ADAGFX_OUT(gfx,colors,fontX,fontY,{0,0,gfxWidth/fontX,gfxHeight/fontY})
+  ,NONE
+);
 
 // Input
 #define encA    3 // A8 (mega)
@@ -271,21 +294,23 @@ MENU_INPUTS(in,&encStream,&encButton);
 NAVROOT(nav, mainMenu, MAX_DEPTH, in, out);
 
 void menu_setup() {
-  /*pinMode(encA, INPUT);
-  pinMode(encB, INPUT);*/
   pinMode(LED_BUILTIN, OUTPUT);
 
   nav.timeOut = 180;
 
-  oled.begin(&Adafruit128x64, I2C_ADDRESS);
-  oled.setFont(menuFont);
-  oled.clear();
-  oled.setCursor(0, 0);
-  oled.print(F("Stellpult"));
+  Wire.begin();
+  gfx.begin(I2C_ADDRESS);
+  gfx.clearDisplay();
+  //gfx.setFont(&FreeMono9pt7b);
+  gfx.setCursor(0, 0);
+  gfx.print(F("Stellpult"));
+  gfx.setContrast(127);
+  gfx.display();
 
   delay(1000);
 
-  oled.clear();
+  gfx.clearDisplay();
+  gfx.display();
   
   encButton.begin();
 }
@@ -293,7 +318,11 @@ void menu_setup() {
 extern uint8_t readWeichenKey();
 
 void menu_loop() {
-  nav.poll();
+  nav.doInput();
+  if (nav.changed(0)) {//only draw if changed
+    nav.doOutput();
+    gfx.display();
+  }
 
   if (ledBlinken) {
     uint8_t w = readWeichenKey();
