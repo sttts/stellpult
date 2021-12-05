@@ -2,6 +2,7 @@
 #include <Adafruit_SSD1327.h>
 #include <Adafruit_GFX.h>
 //#include <Fonts/FreeSans12pt7b.h>
+#include <Adafruit_seesaw.h>
 #include <PCA9685.h>
 #include <menuIO/adafruitGfxOut.h>
 #include <menuIO/chainStream.h>
@@ -282,13 +283,12 @@ MENU_OUTPUTS(out,MAX_DEPTH
 );
 
 // Input
-#define encA    3 // A8 (mega)
-#define encB    2 // A9 (mega)
-#define encBtn  9
-Encoder encoder(encA, encB); // simple quad encoder driver
-encoderInStream<encA,encB> encStream(encoder, 4); // simple quad encoder fake Stream
+#define encBtn 24
+Adafruit_seesaw ss;
+int ssReadFn() { return -ss.getEncoderPosition(); }
+encoderInStream encStream(ssReadFn, 1);
 keyMap encBtn_map[]={{-encBtn,defaultNavCodes[enterCmd].ch}}; // negative pin numbers use internal pull-up, this is on when low
-keyIn<1> encButton(encBtn_map); // 1 is the number of keys
+seesawKeyIn<1> encButton(ss, encBtn_map); // 1 is the number of keys
 MENU_INPUTS(in,&encStream,&encButton);
 
 NAVROOT(nav, mainMenu, MAX_DEPTH, in, out);
@@ -297,6 +297,10 @@ void menu_setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   nav.timeOut = 180;
+
+  ss.begin(0x36);
+  ss.setGPIOInterrupts((uint32_t)1 << encBtn, 1);
+  ss.enableEncoderInterrupt();
 
   Wire.begin();
   gfx.begin(I2C_ADDRESS);
