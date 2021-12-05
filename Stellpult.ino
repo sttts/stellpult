@@ -47,7 +47,7 @@ void updateServo(uint8_t s, bool verbose) {
 void setup() {
   Serial.begin(57600);
   unsigned long start = millis();
-  while (!Serial || millis() < start + 1000) {}
+  while (!Serial && millis() < start + 1000) {}
   Serial.println(F("Start"));
 
   HT.begin(0x00); // 0x70 is added in the class; also starts i2c
