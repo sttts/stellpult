@@ -24,10 +24,14 @@ quadrature encoder stream (fake, not using buffers)
       encoderInStream(int (*readFn)(),int sensivity):readFn(readFn), sensivity(sensivity) {}
       inline void setSensivity(int s) {sensivity=s;}
       int available(void) {return abs(readFn()-oldPos)/sensivity;}
+      
+      inline navCmds up() const {return fieldMode()?downCmd:upCmd;}
+      inline navCmds down() const {return fieldMode()?upCmd:downCmd;}
+      
       int peek(void) override {
         int d=readFn()-oldPos;
-        if (d<=-sensivity)return options->navCodes[downCmd].ch;
-        if (d>=sensivity) return options->navCodes[upCmd].ch;
+        if (d<=-sensivity)return options->navCodes[down()].ch;
+        if (d>=sensivity) return options->navCodes[up()].ch;
         return -1;
       }
       int read() override {
