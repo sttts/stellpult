@@ -195,7 +195,7 @@ Menu::result subServoWeicheSelected(Menu::eventMask e) {
   Serial.print(F("subServoWeicheSelected "));
   Serial.println(weiche);
 
-  state.servos[servo - 1].weiche = weiche;
+  state.servos[servo - 1].weiche = weiche - 1;
   saveData(state);
 
   return Menu::proceed;
