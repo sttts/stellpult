@@ -23,6 +23,9 @@ byte led = 1;
 uint8_t ledBlinken;
 byte weiche = 1;
 
+extern bool servoTest;
+extern byte servoTestWeiche;
+
 byte typ = 0;
 Menu::result selectTypChanged(Menu::eventMask e) {
   Serial.print(F("selectTypChanged "));
@@ -60,10 +63,21 @@ Menu::result subWeichenSelected(Menu::eventMask e) {
   anfangsstellung = state.weichen[weiche - 1].anfangsstellung;
   return Menu::proceed;
 }
+Menu::result subWeichenTesten(Menu::eventMask e) {
+  servoTest = !servoTest;
+  if (servoTest) {
+    servoTestWeiche = weiche;
+    return Menu::quit;
+  } else {
+    updateServos();
+  }
+  return Menu::proceed;
+}
 MENU(subWeichen, "Weichen einstellen", subWeichenSelected, Menu::enterEvent, Menu::noStyle
      , FIELD(weiche, "Nummer", "", 1, 16, 1, 0, subWeichenSelected, Menu::enterEvent, Menu::wrapStyle)
      , SUBMENU(selectTyp)
      , SUBMENU(selectAnfangsstellung)
+     , OP("Servo Testen", subWeichenTesten, Menu::enterEvent)
      , EXIT("<Zurueck")
     );
 
@@ -209,10 +223,10 @@ MENU(subServos, "Servos einstellen", subServoSelected, Menu::enterEvent, Menu::n
      , EXIT("<Zurueck")
     );
 
-extern bool servoTest;
 uint8_t brightness = 15;
 Menu::result servosTesten(Menu::eventMask e) {
   servoTest = !servoTest;
+  servoTestWeiche = 0;
   if (servoTest) {
     return Menu::quit;
   } else {
@@ -224,6 +238,7 @@ Menu::result mainMenuEnter(Menu::eventMask e) {
   brightness = state.brightness;
 
   servoTest = false;
+  servoTestWeiche = 0;
   updateServos();
 
   return Menu::proceed;
@@ -240,7 +255,7 @@ MENU(mainMenu, "Stellpult", mainMenuEnter, Menu::enterEvent, Menu::noStyle
      , SUBMENU(subWeichen)
      , SUBMENU(subLeds)
      , SUBMENU(subServos)
-     , OP("Servos Testen", servosTesten, Menu::enterEvent)
+     , OP("Alle Servos Testen", servosTesten, Menu::enterEvent)
      , FIELD(brightness, "Helligkeit", "", 0, 15, 1, 0, subServoBrightnessUpdated, Menu::enterEvent, Menu::noStyle)
      , EXIT("<Zurueck")
     );

@@ -9,6 +9,7 @@ PCA9685 pwmController;
 HT16K33 HT;
 State state;
 bool servoTest = false;
+byte servoTestWeiche = 0;
 
 uint8_t weichenPositionen[NUM_WEICHEN];
 
@@ -139,6 +140,9 @@ void loop() {
       if (millis() - last > 500) {
         last = millis();
         for (uint8_t w = 1; w <= NUM_WEICHEN; w++) {
+          if (servoTestWeiche > 0 && w != servoTestWeiche) {
+            continue;
+          }
           schalteWeiche(w);  
           updateServo(w, true);
         }
